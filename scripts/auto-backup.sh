@@ -63,6 +63,12 @@ acquire_lock() {
 is_allowlisted() {
   local file="$1"
   local p
+
+  # Include root-level markdown governance/docs files (e.g., AGENTS.md, SOUL.md)
+  if [[ "$file" != */* && "$file" == *.md ]]; then
+    return 0
+  fi
+
   for p in "${ALLOWLIST_PATHS[@]}"; do
     if [[ "$file" == "$p" || "$file" == "$p"/* ]]; then
       return 0
