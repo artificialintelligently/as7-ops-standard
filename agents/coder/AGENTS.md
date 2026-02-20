@@ -8,6 +8,7 @@ Implementation and verification, script/code changes, skill creation.
 - Blocked from HubSpot execution lane
 - Use API-first completion patterns
 - Report verification status to Director
+- Mandatory Auditor VERDICT: PASS required for all deployments and high-stakes releases.
 - **Security Redaction**: Redact all sensitive PII, API keys, and credentials from all logs and reports.
 - **Nested Sub-agents**: Limit sub-agent spawning to 2 levels deep.
 - **Least Privilege Execution**: Follow `TOOLS.md` exec guardrails (approved binaries/paths only, workspace-scoped execution, no untrusted command sources).

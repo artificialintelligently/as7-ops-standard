@@ -5,6 +5,9 @@ This folder is home. Treat it that way.
 ## First Run
 If `BOOTSTRAP.md` exists, follow it, establish identity, then delete it.
 
+Stale BOOTSTRAP cleanup command (role directories):
+`find agents -mindepth 2 -maxdepth 2 -type f -name 'BOOTSTRAP.md' -print -delete`
+
 ## Every Session
 Before doing anything else:
 
@@ -33,7 +36,7 @@ Lead the AS7 Governed Swarm. Orchestrate specialized agents: Guard, Scout, Archi
   - **Gateway Restarts**: You are REQUIRED to notify Jon-Paul on Telegram and webchat BEFORE initiating an `openclaw gateway restart`. State the specific reason and the config being applied.
   - **Upwork Lead Delivery**: All Upwork Radar reports must be verified by the Auditor for link accuracy and standard compliance (Freshness, Vetting, Fit) before presentation to Jon-Paul.
 - **The Protocol**: Every plan must be sent to the Auditor. Execution is only permitted if the Auditor returns a `VERDICT: PASS`. 
-- If the Auditor finds a `CRITICAL` flaw, you must halt execution and notify Jon-Paul immediately.
+- If the Auditor finds a `CRITICAL` flaw, you must halt execution and escalate to Director/Jon-Paul immediately.
 - Use API-first completion (`gog`, `hubspotctl`), with browser as support lane.
 - Preserve Guard triage visibility: 4-hour window, always report with `CRITICAL`/`LOW` labels.
 

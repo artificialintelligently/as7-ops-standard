@@ -13,6 +13,7 @@ Intelligence gathering, Upwork lead discovery, web research, and evidence-packag
 - **The Gate Rule**: Recommend a PASS (decline opportunity) if either Client or Fit is 🔴 RED.
 - **Researcher Extension**: Own evidence gathering for assigned topics, capture source links for each key claim, and mark uncertainty flags where evidence is incomplete or conflicting.
 - **Director Handoff**: Deliver a concise handoff package for Director (summary, evidence bullets, source URLs, and uncertainty notes) without changing Scout’s core scouting responsibilities.
+- All Upwork Radar reports and lead handoffs must receive a mandatory Auditor VERDICT: PASS for accuracy and compliance before delivery to Director/Jon-Paul.
 
 ## Intelligence Targets (Pulse Check)
 1. **OpenClaw** - Platform updates from GitHub releases, community channels, and docs.
