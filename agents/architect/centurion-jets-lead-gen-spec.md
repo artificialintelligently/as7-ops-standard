@@ -123,15 +123,14 @@ Best,
 Mearon
 ```
 
-**Voice DNA Scoring Rubric (0-100)**:
+**Voice DNA Scoring Rubric (V01 - Updated Weights)**:
 
 | Dimension | Weight | Criteria | Score Range |
 |-----------|--------|----------|-------------|
-| **Relevance** | 25% | Match between prospect role/needs and charter/fractional offering | 0-25 |
-| **Personalization** | 25% | Specific insights from research (company, news, role) incorporated | 0-25 |
-| **Tone Alignment** | 20% | Matches Voice DNA persona (professional, discreet, anticipatory) | 0-20 |
-| **Value Proposition** | 15% | Clear, compelling benefit statement | 0-15 |
-| **Call-to-Action** | 15% | Natural, low-friction CTA (15-min call, brief question) | 0-15 |
+| **Tone** | 30% | Matches Voice DNA persona (professional, discreet, anticipatory) | 0-30 |
+| **Personalization** | 30% | Specific insights from research (company, news, role) incorporated | 0-30 |
+| **Compliance-Safety** | 20% | No regulatory red flags, proper disclosure, CAN-SPAM/GDPR compliant | 0-20 |
+| **CTA-Clarity** | 20% | Natural, low-friction CTA (15-min call, brief question) | 0-20 |
 
 **Minimum Pass Threshold**: 70/100
 
@@ -147,7 +146,7 @@ Messages scoring below 70 require revision before approval.
 |----------|----------|
 | **Lead Ingestion** | Receive Scout outputs, deduplicate, enrich |
 | **Schedule Management** | Day/time optimization for outreach |
-| **Follow-up Triggers** | 3-day, 7-day, 14-day touch sequences |
+| **Follow-up Triggers** | Touch sequence (Touch 1 → Touch 2 → Touch 3, then STOP) |
 | **CRM Logging** | Track opens, replies, meetings booked |
 | **Handoff to OpenClaw** | Webhook triggers with context payload |
 
@@ -163,7 +162,8 @@ Messages scoring below 70 require revision before approval.
 ### 4.3 Hand-off Data Schema (Enhanced)
 
 ```json
-// n8n → OpenClaw (Trigger)
+// n8n → OpenClaw (Trigger) - W01: Webhook Security Required
+// REQUIREMENT: Bearer token auth + HMAC-SHA256 signature verification
 {
   "prospect_id": "uuid",
   "prospect_name": "string",
@@ -186,7 +186,10 @@ Messages scoring below 70 require revision before approval.
     "can_spam_compliant": true|false,
     "lawful_basis": "consent|legitimate_interest|contract"
   },
-  "idempotency_key": "sha256_hash_of_prospect_campaign_combo"
+  "idempotency_key": "sha256_hash_of_prospect_campaign_combo",
+  
+  // S01: Persona Type Schema Field
+  "persona_type": "family_office|executive_assistant|uhnw_individual|corporate_exec"
 }
 
 // OpenClaw → n8n (Response)
@@ -197,11 +200,10 @@ Messages scoring below 70 require revision before approval.
   "image_prompts": ["array of image generation prompts"],
   "voice_dna_score": 0-100,
   "voice_dna_breakdown": {
-    "relevance": 0-25,
-    "personalization": 0-25,
-    "tone_alignment": 0-20,
-    "value_proposition": 0-15,
-    "call_to_action": 0-15
+    "tone": 0-30,
+    "personalization": 0-30,
+    "compliance_safety": 0-20,
+    "cta_clarity": 0-20
   },
   "approved": boolean,
   "approval_required_reason": "if below threshold"
@@ -225,11 +227,13 @@ Messages scoring below 70 require revision before approval.
 | **Human Send Confirmation** | MANDATORY for ALL messages before dispatch |
 
 **Ramp Schedule Details**:
-- **Week 1**: 5 connection requests/day, 3 follow-ups max
-- **Week 2**: 10 connection requests/day, 5 follow-ups max
-- **Week 3+**: 15 connection requests/day, 7 follow-ups max
+- **Week 1**: 5 connection requests/day
+- **Week 2**: 10 connection requests/day
+- **Week 3+**: 15 connection requests/day
+- **Per-Prospect Touch Cap**: 3 touches max (1 initial + 2 follow-ups) per prospect per 30 days across ALL channels
 - **Cooldown**: 72-hour minimum between touches to same prospect
 - **Cool-down Period**: After negative response, 30-day silence
+- **Note**: The daily/weekly limits above are ACCOUNT-LEVEL caps for LinkedIn safety (how many requests Mearon can send per day). The per-prospect limit of 3 touches is ENFORCED via the A01 state machine and is SEPARATE from account-level volume caps.
 
 **n8n Workflow**:
 1. Load prospect list (from Scout research)
@@ -261,7 +265,7 @@ Messages scoring below 70 require revision before approval.
 
 | Component | Specification |
 |-----------|---------------|
-| **Domain Warm-up** | Start with 5 emails/day, increase by 5/week to max 50/day over 8 weeks |
+| **Domain Warm-up (E02 - Aggressive 4-Week Ramp)** | Week 1: 50/day, Week 2: 100/day, Week 3: 200/day, Week 4: 400/day |
 | **SPF Alignment** | v=spf1 include:_spf.sending-domain.com ~all |
 | **DKIM Signing** | DomainKey-Signature header with private key |
 | **DMARC Policy** | p=quarantine, rua=mailto:dmarc-reports@centurionjets.com |
@@ -277,9 +281,15 @@ Messages scoring below 70 require revision before approval.
 | Temporary | >20% | Delay 24h, retry |
 
 **n8n Workflow**:
-1. Email warm-up sequence (day 1, 3, 7, 14)
+1. Email warm-up sequence (day 1, 3, 7)
 2. Track opens, clicks, replies
 3. Auto-responder based on engagement
+
+**Touch Sequence (EXPLICIT - NO EXCEPTIONS)**:
+- **Sequence**: Touch 1 → Touch 2 → Touch 3 → **STOP**
+- This email sequence is STRICTLY limited to 3 touches total.
+- **Reference to A01 Rule**: Per the A01 State Machine (Section 6.4), **3 total touches max** across ALL channels (LinkedIn + Email combined) per prospect per 30 days. The email sequence must adhere to this cap — there is NO Touch 4, regardless of engagement.
+- After Touch 3, the prospect transitions to COMPLETE state unless a meeting is booked.
 
 **OpenClaw Inputs**:
 - Personalized email copy
@@ -306,13 +316,44 @@ Messages scoring below 70 require revision before approval.
 - **Manual Intervention**: Failed items require human review before reprocessing
 - **Idempotency Keys**: Every message includes SHA256 hash of prospect_id + campaign_type + timestamp_day to prevent duplicate sends
 
-### 6.3 Anti-Collision / Fatigue Controls
+### 6.3 Health Monitoring (L02 - Account Warning Detection)
 
+**L02 Auto-Pause Rule**:
+| Metric | Threshold | Action |
+|--------|-----------|--------|
+| **Account Warnings (7-day rolling)** | >3 warnings detected | AUTO-PAUSE entire system |
+| **Warning Types** | LinkedIn restriction, Email block, bounce spike, complaint spike | Immediate pause |
+| **Pause Duration** | Until human review clears | Minimum 24 hours |
+| **Resume Criteria** | All warning sources investigated, mitigation applied | Manual resume required |
+
+**Warning Detection Sources**:
+- LinkedIn: Connection limit reached, profile restrictions, InMail failures
+- Email: Hard bounce rate >5%, spam complaint rate >0.1%, sender reputation drop
+- n8n: Workflow error rate >10% in 1 hour
+
+### 6.4 Anti-Collision / Fatigue Controls (A01 - Touch Cap Enforced)
+
+**A01 State Machine Implementation**:
+
+| State | Description | Allowed Transitions |
+|-------|-------------|---------------------|
+| **NEW** | Prospect added, no touch yet | → TOUCH_1 |
+| **TOUCH_1** | First outreach sent | → TOUCH_2, → NEGATIVE, → COMPLETE |
+| **TOUCH_2** | Second outreach sent | → TOUCH_3, → NEGATIVE, → COMPLETE |
+| **TOUCH_3** | Third outreach sent | → NEGATIVE, → COMPLETE |
+| **NEGATIVE** | Prospect said no / hard bounce | → COOLDOWN (30 days) |
+| **COOLDOWN** | Silence period after negative | → NEW (after 30 days) |
+| **COMPLETE** | Meeting booked / converted | Terminal state |
+| **BLOCKED** | DNC / complaint received | Terminal state |
+
+**Touch Cap Rules (A01)**:
 | Control | Specification |
 |---------|---------------|
+| **Max Total Touches** | 3 touches max across ALL channels (LinkedIn + Email combined) per prospect per 30 days |
+| **State Machine Enforcement** | n8n workflow MUST track prospect state and block TOUCH_4+ transitions |
+| **Reset Window** | 30-day rolling window; touches beyond 30 days don't count toward cap |
 | **LinkedIn + Email Gap** | Minimum 48 hours between LinkedIn touch and email touch |
 | **Same-Platform Gap** | 72 hours minimum between LinkedIn actions, 5 days between emails |
-| **Total Touches/Month** | Maximum 8 touches per prospect (combined channels) |
 | **Silence Period** | After negative response: 30-day cool-down |
 | **Do Not Contact** | Honor DNC status indefinitely |
 | **Collision Detection** | n8n checks activity log before scheduling any new touch |
@@ -349,7 +390,17 @@ Messages scoring below 70 require revision before approval.
 
 ## 8. Security Implementation
 
-### 8.1 Key Rotation
+### 8.1 Webhook Security (W01 - Mandatory)
+
+| Requirement | Implementation |
+|-------------|-----------------|
+| **Authentication** | Bearer token in Authorization header for ALL webhooks |
+| **HMAC Verification** | SHA256 signature in X-HMAC-Signature header, verified on receipt |
+| **Signature Validation** | Reject all requests with invalid/expired signatures |
+| **Token Scope** | Each webhook endpoint has dedicated token with minimal permissions |
+| **Secret Rotation** | 60-day rotation schedule for webhook secrets |
+
+### 8.2 Key Rotation
 
 | Key Type | Rotation Frequency | Implementation |
 |----------|-------------------|-----------------|
@@ -358,13 +409,13 @@ Messages scoring below 70 require revision before approval.
 | Database Credentials | 30 days | Environment variable rotation |
 | Signing Keys (HMAC) | 30 days | Automated rotation script |
 
-### 8.2 Secret Scoping
+### 8.3 Secret Scoping
 
 - **Environment-Specific Secrets**: Dev, Staging, Production separate vaults
 - **Least Privilege**: Each API key scoped to minimum required permissions
 - **Secret Metadata**: Tags for expiration date, system, owner
 
-### 8.3 Payload Encryption
+### 8.4 Payload Encryption
 
 | Layer | Method |
 |-------|--------|
@@ -386,11 +437,11 @@ Messages scoring below 70 require revision before approval.
 | UHNW Individuals | 25% | 50% | 8% | 2-4 | $80 |
 | Corporate Execs | 40% | 60% | 15% | 5-7 | $40 |
 
-### 9.2 Pilot Criteria
+### 9.2 Pilot Criteria (K01 - Updated)
 
 | Phase | Prospect Count | Duration | Success Criteria |
 |-------|----------------|----------|-------------------|
-| Pilot | 20 prospects | 4 weeks | 3+ meetings booked |
+| **Pilot** | 20 prospects | 2 weeks | LinkedIn Connection Acceptance >25%, Email Open Rate >35% |
 | Validation | 50 prospects | 8 weeks | 8+ meetings, <5% hard bounce |
 | Scale | 200 prospects | 12 weeks | Achieve segment benchmarks |
 

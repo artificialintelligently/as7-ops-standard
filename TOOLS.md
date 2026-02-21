@@ -25,10 +25,10 @@ Things like:
 
 - home-server → 192.168.1.100, user: admin
 
-### TTS
+### Google Drive Delivery Folders
 
-- Preferred voice: "Nova" (warm, slightly British)
-- Default speaker: Kitchen HomePod
+- **KODA INBOX** (My Dropbox for all deliverables): `1bVzuZBuwXsKV55XKRELUNoRyCSLX46Xp`
+- **KODA OUTBOX** (Pickup mail from Jon-Paul): `1ijnV1UZ7_oX_Hmxy9uO9J_C7X-_5qdCj`
 ```
 
 ## Why Separate?

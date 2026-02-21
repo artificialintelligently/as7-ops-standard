@@ -1,4 +1,6 @@
 {
   "version": 1,
-  "onboardingCompletedAt": "2026-02-18T19:00:00.116Z"
+  "bootstrapSeededAt": "2026-02-19T19:00:00.113Z",
+  "onboardingCompletedAt": "2026-02-18T19:00:00.116Z",
+  "bootstrapCompletedAt": "2026-02-21T05:42:00Z"
 }
